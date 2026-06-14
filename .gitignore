@@ -1,0 +1,19 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+
+# SQLite
+*.db
+
+# OS
+.DS_Store
+
+# Playwright
+.playwright-mcp/
+
+# スクリーンショット（一時ファイル）
+*.png
+*.jpg
