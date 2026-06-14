@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>シンプル ToDo</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+</head>
+<body class="bg-gray-50 min-h-screen" x-data="todoApp()">
+
+  <div class="max-w-2xl mx-auto px-4 py-12">
+
+    <!-- ヘッダー -->
+    <div class="mb-8">
+      <h1 class="text-2xl font-bold text-gray-900 tracking-tight">シンプル ToDo</h1>
+      <p class="text-sm text-gray-400 mt-1">
+        <span x-text="todos.filter(t => !t.done).length"></span> 件未完了
+        <span class="mx-1">·</span>
+        全 <span x-text="todos.length"></span> 件
+      </p>
+    </div>
+
+    <!-- 検索エリア -->
+    <div class="relative mb-3">
+      <svg class="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-4.35-4.35M17 11A6 6 0 1 1 5 11a6 6 0 0 1 12 0z"/>
+      </svg>
+      <input
+        type="text"
+        x-model="searchQuery"
+        placeholder="タスクを検索..."
+        class="w-full pl-9 pr-4 py-2 text-sm border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+      >
+      <button
+        x-show="searchQuery"
+        @click="searchQuery = ''"
+        class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-300 hover:text-gray-500"
+      >
+        <svg class="h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+        </svg>
+      </button>
+    </div>
+
+    <!-- タスク入力エリア -->
+    <div class="flex gap-2 mb-6">
+      <input
+        type="text"
+        x-model="newTaskName"
+        @keydown.enter="addTask"
+        placeholder="タスク名を入力"
+        class="flex-1 px-4 py-2 text-sm border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+      >
+      <input
+        type="date"
+        x-model="newTaskDue"
+        class="px-3 py-2 text-sm border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-600"
+      >
+      <button
+        @click="addTask"
+        class="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 active:bg-blue-800 transition-colors"
+      >
+        追加
+      </button>
+    </div>
+
+    <!-- タスクリスト -->
+    <div class="space-y-2">
+      <template x-for="todo in filteredTodos" :key="todo.id">
+        <div class="flex items-center gap-3 bg-white border border-gray-100 rounded-lg px-4 py-3 shadow-sm group transition-opacity"
+             :class="todo.done ? 'opacity-60' : ''">
+
+          <!-- チェックボックス -->
+          <input
+            type="checkbox"
+            :checked="todo.done"
+            @change="toggleTodo(todo.id)"
+            class="h-4 w-4 rounded accent-blue-600 cursor-pointer flex-shrink-0"
+          >
+
+          <!-- タスク名 -->
+          <span
+            class="flex-1 text-sm text-gray-800 truncate"
+            :class="todo.done ? 'line-through text-gray-400' : ''"
+            x-text="todo.name"
+          ></span>
+
+          <!-- 期限 -->
+          <span
+            x-show="todo.due"
+            class="text-xs flex-shrink-0 font-medium"
+            :class="isOverdue(todo) ? 'text-red-400' : 'text-gray-400'"
+            x-text="formatDate(todo.due)"
+          ></span>
+
+          <!-- 削除ボタン -->
+          <button
+            @click="deleteTodo(todo.id)"
+            class="text-gray-200 hover:text-red-400 transition-colors flex-shrink-0 opacity-0 group-hover:opacity-100"
+          >
+            <svg class="h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+            </svg>
+          </button>
+        </div>
+      </template>
+
+      <!-- 検索結果なし -->
+      <div
+        x-show="filteredTodos.length === 0 && searchQuery"
+        class="text-center text-sm text-gray-400 py-12"
+      >
+        「<span x-text="searchQuery" class="font-medium"></span>」に一致するタスクはありません
+      </div>
+
+      <!-- タスクなし -->
+      <div
+        x-show="todos.length === 0"
+        class="text-center text-sm text-gray-400 py-12"
+      >
+        タスクを追加してください
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    function todoApp() {
+      return {
+        searchQuery: '',
+        newTaskName: '',
+        newTaskDue: '',
+
+        todos: [
+          { id: 1, name: 'デザインレビュー',           due: '2026-06-20', done: false },
+          { id: 2, name: 'API 設計ドキュメントの作成', due: '2026-06-18', done: false },
+          { id: 3, name: '要件定義書の確認',           due: '2026-06-14', done: true  },
+          { id: 4, name: 'ミーティング準備',           due: '2026-06-17', done: false },
+          { id: 5, name: 'バグ修正 #42',              due: '',           done: false },
+        ],
+
+        get filteredTodos() {
+          if (!this.searchQuery.trim()) return this.todos;
+          const q = this.searchQuery.trim().toLowerCase();
+          return this.todos.filter(t => t.name.toLowerCase().includes(q));
+        },
+
+        addTask() {
+          if (!this.newTaskName.trim()) return;
+          this.todos.push({
+            id: Date.now(),
+            name: this.newTaskName.trim(),
+            due: this.newTaskDue,
+            done: false,
+          });
+          this.newTaskName = '';
+          this.newTaskDue = '';
+        },
+
+        toggleTodo(id) {
+          const todo = this.todos.find(t => t.id === id);
+          if (todo) todo.done = !todo.done;
+        },
+
+        deleteTodo(id) {
+          this.todos = this.todos.filter(t => t.id !== id);
+        },
+
+        isOverdue(todo) {
+          if (!todo.due || todo.done) return false;
+          const today = new Date();
+          today.setHours(0, 0, 0, 0);
+          return new Date(todo.due) < today;
+        },
+
+        formatDate(dateStr) {
+          if (!dateStr) return '';
+          const [, m, d] = dateStr.split('-');
+          return `${parseInt(m)}/${parseInt(d)}`;
+        },
+      };
+    }
+  </script>
+</body>
+</html>
