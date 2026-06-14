@@ -21,26 +21,36 @@
       </p>
     </div>
 
-    <!-- 検索エリア -->
-    <div class="relative mb-3">
-      <svg class="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-4.35-4.35M17 11A6 6 0 1 1 5 11a6 6 0 0 1 12 0z"/>
-      </svg>
-      <input
-        type="text"
-        x-model="searchQuery"
-        placeholder="タスクを検索..."
-        class="w-full pl-9 pr-4 py-2 text-sm border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-      >
-      <button
-        x-show="searchQuery"
-        @click="searchQuery = ''"
-        class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-300 hover:text-gray-500"
-      >
-        <svg class="h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+    <!-- 検索 ＋ 並べ替えエリア -->
+    <div class="flex gap-2 mb-3">
+      <div class="relative flex-1">
+        <svg class="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-4.35-4.35M17 11A6 6 0 1 1 5 11a6 6 0 0 1 12 0z"/>
         </svg>
-      </button>
+        <input
+          type="text"
+          x-model="searchQuery"
+          placeholder="タスクを検索..."
+          class="w-full pl-9 pr-4 py-2 text-sm border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+        >
+        <button
+          x-show="searchQuery"
+          @click="searchQuery = ''"
+          class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-300 hover:text-gray-500"
+        >
+          <svg class="h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+          </svg>
+        </button>
+      </div>
+      <select
+        x-model="sortKey"
+        class="px-3 py-2 text-sm border border-gray-200 rounded-lg bg-white text-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+      >
+        <option value="default">追加順</option>
+        <option value="due">期限順</option>
+        <option value="status">完了状態順</option>
+      </select>
     </div>
 
     <!-- タスク入力エリア -->
@@ -129,6 +139,7 @@
     function todoApp() {
       return {
         searchQuery: '',
+        sortKey: 'default',
         newTaskName: '',
         newTaskDue: '',
 
@@ -141,9 +152,23 @@
         ],
 
         get filteredTodos() {
-          if (!this.searchQuery.trim()) return this.todos;
           const q = this.searchQuery.trim().toLowerCase();
-          return this.todos.filter(t => t.name.toLowerCase().includes(q));
+          let result = q
+            ? this.todos.filter(t => t.name.toLowerCase().includes(q))
+            : [...this.todos];
+
+          if (this.sortKey === 'due') {
+            result.sort((a, b) => {
+              if (!a.due && !b.due) return 0;
+              if (!a.due) return 1;
+              if (!b.due) return -1;
+              return a.due < b.due ? -1 : a.due > b.due ? 1 : 0;
+            });
+          } else if (this.sortKey === 'status') {
+            result.sort((a, b) => Number(a.done) - Number(b.done));
+          }
+
+          return result;
         },
 
         addTask() {
